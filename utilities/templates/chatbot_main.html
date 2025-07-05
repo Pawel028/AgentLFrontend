@@ -21,7 +21,7 @@
 </head>
 <body class="container mt-4">
 
-    <h2 class="mb-3">Chat with AgentLaw</h2>
+    <h2 class="mb-3">Chat with Agent L</h2>
 
     <div id="chat-box">
         {% for sender, msg in chat_history %}
@@ -53,7 +53,7 @@
         </div>
     </form>
 
-    <p class="mt-3"><a href="{{ url_for('logout') }}">Logout</a></p>
+    <p class="mt-3"><a href="{{ url_for('auth.logout') }}">Logout</a></p>
 
     <script>
         const chatBox = document.getElementById('chat-box');
