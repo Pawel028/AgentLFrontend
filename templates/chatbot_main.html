@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AgentLaw Chatbot</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        #chat-box {
+            height: 400px;
+            overflow-y: auto;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        .message { margin-bottom: 12px; }
+        .user { font-weight: bold; color: #0056b3; }
+        .bot { font-weight: bold; color: #198754; }
+        .system { font-style: italic; color: gray; }
+    </style>
+</head>
+<body class="container mt-4">
+
+    <h2 class="mb-3">Chat with AgentLaw</h2>
+
+    <div id="chat-box">
+        {% for sender, msg in chat_history %}
+            <div class="message">
+                {% if sender == 'User' %}
+                    <div class="user">User:</div>
+                {% elif sender == 'Bot' %}
+                    <div class="bot">Bot:</div>
+                {% else %}
+                    <div class="system">System:</div>
+                {% endif %}
+                <div>{{ msg }}</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <input type="text" name="user_input" class="form-control" placeholder="Ask something..." required>
+        </div>
+
+        <div class="mb-3">
+            <input type="file" name="file" class="form-control">
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Send</button>
+            <button type="submit" name="delete_history" value="1" class="btn btn-danger">Delete Chat History</button>
+        </div>
+    </form>
+
+    <p class="mt-3"><a href="{{ url_for('logout') }}">Logout</a></p>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        if (chatBox) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>

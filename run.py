@@ -8,6 +8,11 @@ import secrets
 from flask_mail import Mail, Message
 
 dotenv.load_dotenv()
+from werkzeug.utils import secure_filename
+import mimetypes
+
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+
 
 # SQL Server config
 server = 'railway-ml.database.windows.net'
@@ -43,6 +48,10 @@ conn_str = (
     f"TrustServerCertificate=no;"
     f"Connection Timeout=30;"
 )
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # --- Password utilities ---
 def is_strong_password(password):
@@ -165,11 +174,35 @@ def reset_password(email, token):
 
     return render_template('reset_password.html')
 
-@app.route('/main')
+
+
+@app.route('/main', methods=['GET', 'POST'])
 def main():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('main.html', email=session['user'])
+
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+
+    if request.method == 'POST':
+        if 'delete_history' in request.form:
+            session['chat_history'] = []
+        else:
+            user_msg = request.form.get('user_input')
+            if user_msg:
+                bot_msg = f"You said: {user_msg}"  # Replace this with LLM/gpt response
+                session['chat_history'].append(("User", user_msg))
+                session['chat_history'].append(("Bot", bot_msg))
+            if 'file' in request.files:
+                file = request.files['file']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join("uploads", filename))
+                    session['chat_history'].append(("System", f"Uploaded file: {filename}"))
+
+    return render_template('chatbot_main.html', chat_history=session['chat_history'])
+
+
 
 @app.route('/logout')
 def logout():
