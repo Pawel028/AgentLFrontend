@@ -184,23 +184,21 @@ def main():
     if 'chat_history' not in session:
         session['chat_history'] = []
 
+    chat_history = session['chat_history']
+
     if request.method == 'POST':
         if 'delete_history' in request.form:
             session['chat_history'] = []
         else:
             user_msg = request.form.get('user_input')
             if user_msg:
-                bot_msg = f"You said: {user_msg}"  # Replace this with LLM/gpt response
-                session['chat_history'].append(("User", user_msg))
-                session['chat_history'].append(("Bot", bot_msg))
-            if 'file' in request.files:
-                file = request.files['file']
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    file.save(os.path.join("uploads", filename))
-                    session['chat_history'].append(("System", f"Uploaded file: {filename}"))
-
+                bot_msg = f"You said: {user_msg}"
+                chat_history.append(("User", user_msg))
+                chat_history.append(("Bot", bot_msg))
+                session['chat_history'] = chat_history  # 🔁 This is key
+    print(session['chat_history'])
     return render_template('chatbot_main.html', chat_history=session['chat_history'])
+
 
 
 
