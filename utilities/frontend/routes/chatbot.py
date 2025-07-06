@@ -21,7 +21,7 @@ def main():
     if 'extracted_data' not in session:
         session['extracted_data'] = []
     extracted_data_list = session['extracted_data']
-    
+
     if 'generate_results' in request.form:
         # Generate results button was clicked
         demographicextractorAgent_obj = demographicextractorAgent(
@@ -30,13 +30,14 @@ def main():
             uploaded_Img_text_summary=session.get('uploaded_Img_text_summary', [])
         )
         extracted_data = demographicextractorAgent_obj.extract_Ids()
+        print(extracted_data)
         if 'extracted_data' not in session:
             session['extracted_data'] = []  
         extracted_data_list = session['extracted_data']
         extracted_data_list.append({
-            'Party_Identifier': extracted_data.Party_Identifier,
-            'completion_tokens': extracted_data.completion_tokens,
-            'prompt_tokens': extracted_data.prompt_tokens
+            'Party_Identifier': extracted_data['Party_Identifier'],
+            'completion_tokens': extracted_data['completion_tokens'],
+            'prompt_tokens': extracted_data['prompt_tokens']
         })
         session['extracted_data'] = extracted_data_list
         # Redirect to the same page to show the results
@@ -71,7 +72,6 @@ def main():
         uploaded_Img_text = session['uploaded_Img_text']
 
     return render_template('chatbot_main.html', chat_history=chat_history, uploaded_Img_text=extracted_data_list)
-
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
 def click_doc():
@@ -113,7 +113,5 @@ def click_doc():
             uploaded_Img_text_summary = session['uploaded_Img_text_summary']
             uploaded_Img_text_summary.append(extracted_data.summary)
             session['uploaded_Img_text_summary'] = uploaded_Img_text_summary             
-            return redirect(url_for('click_doc.html'))
+            return redirect(url_for('chatbot.click_doc'))
     return render_template('click_doc.html')
-
-
