@@ -49,7 +49,8 @@ def main():
         session['uploaded_Img_text_summary']= []
         return redirect(url_for('chatbot.main'))
 
-
+    if 'chat_history' not in session:
+        session['chat_history'] = []
     chat_history = session['chat_history']
     
     if request.method == 'POST':
