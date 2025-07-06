@@ -8,3 +8,9 @@ requests-oauthlib==2.0.0
 pyodbc
 bcrypt 
 Flask-Mail
+langchain
+openai
+azure-ai-documentintelligence
+azure-ai-formrecognizer
+Pillow
+langchain-community

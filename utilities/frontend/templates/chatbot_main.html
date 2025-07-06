@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AgentLaw Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f7fa;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 30px;
+            width: 90%;
+            max-width: 1200px;
+            margin: 40px auto;
+        }
+
+        .chat-section, .preview-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+
+        .chat-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chatbox {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 15px;
+            background: #f9f9f9;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin: 10px 0;
+        }
+
+        .user {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .bot {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .preview-section h3 {
+            text-align: center;
+            color: #333;
+        }
+
+        .preview-section img {
+            max-width: 100%;
+            border-radius: 10px;
+            display: block;
+            margin: 20px auto 0;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Chatbot Section -->
+        <div class="chat-section">
+            <h2>Agent L is here to help you</h2>
+
+            <div class="chatbox" id="chatbox">
+                {% for sender, message in chat_history %}
+                    <div class="message">
+                        <span class="{{ 'user' if sender == 'User' else 'bot' }}">{{ sender }}:</span> {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <form method="POST">
+                <input type="text" name="user_input" placeholder="Type your message..." required>
+                <div class="nav-buttons">
+                    <button type="submit">Send</button>
+                    <button type="submit" name="delete_history" value="1" style="background-color: #dc3545;">Clear Chat</button>
+                    <a href="{{ url_for('chatbot.click_doc') }}"><button type="button">Click Document</button></a>
+                    <a href="{{ url_for('auth.logout') }}"><button type="button" style="background-color: #6c757d;">Logout</button></a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Document Preview Section -->
+        <!-- <div class="preview-section">
+            <h3>Clicked/Uploaded Document</h3>
+            {% if image_preview %}
+                <img src="{{ image_preview }}" alt="Uploaded Document">
+            {% else %}
+                <p>No image uploaded yet</p>
+            {% endif %}
+        </div> -->
+    </div>
+
+    <script>
+        // Auto-scroll chatbox
+        window.onload = function () {
+            const chatbox = document.getElementById("chatbox");
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+    </script>
+</body>
+</html>

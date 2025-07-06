@@ -2,7 +2,7 @@
 from flask import Flask
 from flask_mail import Mail
 import os
-from utilities.database import init_db
+from utilities.frontend.database import init_db
 
 mail = Mail()
 
@@ -25,9 +25,9 @@ def create_app():
     init_db()
 
     # Register routes
-    from utilities.routes.auth import auth_bp
+    from utilities.frontend.routes.auth import auth_bp
     app.register_blueprint(auth_bp)
-    from utilities.routes.chatbot import chatbot_bp
+    from utilities.frontend.routes.chatbot import chatbot_bp
     app.register_blueprint(chatbot_bp)
 
     return app

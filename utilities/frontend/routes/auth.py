@@ -1,13 +1,13 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for
-from utilities.database import get_connection
-from utilities.security import hash_password, check_password, is_strong_password
+from utilities.frontend.database import get_connection
+from utilities.frontend.security import hash_password, check_password, is_strong_password
 import pyodbc
 import secrets
 from flask_mail import Mail, Message
 import os
 import dotenv
 from flask import current_app
-from utilities import mail
+from utilities.frontend import mail
 dotenv.load_dotenv()
 
 auth_bp = Blueprint('auth', __name__)

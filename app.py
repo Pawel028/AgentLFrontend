@@ -1,4 +1,4 @@
-from utilities import create_app
+from utilities.frontend import create_app
 
 app = create_app()
 
