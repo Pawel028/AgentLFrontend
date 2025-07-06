@@ -117,6 +117,11 @@
                         <span class="{{ 'user' if sender == 'User' else 'bot' }}">{{ sender }}:</span> {{ message }}
                     </div>
                 {% endfor %}
+                {% for message in uploaded_Img_text %}
+                    <div class="message">
+                        <span class="bot">Document Info:</span> {{ message }}
+                    </div>
+                {% endfor %}
             </div>
 
             <form method="POST">

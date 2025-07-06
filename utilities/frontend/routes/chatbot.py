@@ -32,13 +32,15 @@ def main():
                 chat_history.append(("User", user_msg))
                 chat_history.append(("Bot", bot_msg))
                 session['chat_history'] = chat_history
-
-    # Get image filename
-    image_preview = None
-    if 'downsized_doc_image_filename' in session:
-        image_preview = url_for('static', filename=f"static/uploads/{session['downsized_doc_image_filename']}")
-        print(f"static/uploads/{session['downsized_doc_image_filename']}")
-    return render_template('chatbot_main.html', chat_history=chat_history, image_preview=image_preview)
+    
+    uploaded_Img_text = []
+    if 'uploaded_Img_text' in session:
+        uploaded_Img_text = session['uploaded_Img_text']
+    # image_preview = None
+    # if 'uploaded_Img_text' in session:
+    #     image_preview = url_for('static', filename=f"static/uploads/{session['downsized_doc_image_filename']}")
+    #     print(f"static/uploads/{session['downsized_doc_image_filename']}")
+    return render_template('chatbot_main.html', chat_history=chat_history, uploaded_Img_text=uploaded_Img_text)
 
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
@@ -70,20 +72,11 @@ def click_doc():
             result_json = json.dumps(text)
             extractorAgent_obj = extractorAgent(result_json)
             extracted_data = extractorAgent_obj.extract()
-            print(f"Extracted Data: {extracted_data.content}")
-            # except Exception as e:
-            #     return f"Azure error: {e}"
-
-            # # Optionally store the downsized image
-            # downsized_image = image_bytes  # or your resized one
-            # filename = f"{uuid.uuid4().hex}.jpg"
-            # filepath = os.path.join("static", "uploads", filename)
-            # os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            # with open(filepath, "wb") as f:
-            #     f.write(downsized_image)
-
-            # session['downsized_doc_image_filename'] = filename
-
+            if 'uploaded_Img_text' not in session:
+                session['uploaded_Img_text'] = []
+            uploaded_Img_text = session['uploaded_Img_text']
+            uploaded_Img_text.append(extracted_data.content)
+            session['uploaded_Img_text'] = uploaded_Img_text 
             
             return redirect(url_for('chatbot.main'))
 
