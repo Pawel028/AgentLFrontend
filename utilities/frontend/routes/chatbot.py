@@ -9,6 +9,7 @@ import json
 # from azure.core.serialization import serialize_model
 from utilities.backend.docrecognizer import AzureDocIntelligenceClient
 from utilities.backend.doc_extracter_agent import extractorAgent
+from utilities.backend.litigator_agent import demographicextractorAgent
 chatbot_bp = Blueprint('chatbot', __name__)
 doc_intelligence_client = AzureDocIntelligenceClient(endpoint = os.getenv('DOCUMENTINTELLIGENCE_ENDPOINT'), key = os.getenv('DOCUMENTINTELLIGENCE_KEY'))
 
@@ -16,9 +17,37 @@ doc_intelligence_client = AzureDocIntelligenceClient(endpoint = os.getenv('DOCUM
 def main():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
-
-    if 'chat_history' not in session:
+    
+    if 'extracted_data' not in session:
+        session['extracted_data'] = []
+    extracted_data_list = session['extracted_data']
+    
+    if 'generate_results' in request.form:
+        # Generate results button was clicked
+        demographicextractorAgent_obj = demographicextractorAgent(
+            chat_history=session.get('chat_history', []),
+            uploaded_Img_text=session.get('uploaded_Img_text', []),
+            uploaded_Img_text_summary=session.get('uploaded_Img_text_summary', [])
+        )
+        extracted_data = demographicextractorAgent_obj.extract_Ids()
+        if 'extracted_data' not in session:
+            session['extracted_data'] = []  
+        extracted_data_list = session['extracted_data']
+        extracted_data_list.append({
+            'Party_Identifier': extracted_data.Party_Identifier,
+            'completion_tokens': extracted_data.completion_tokens,
+            'prompt_tokens': extracted_data.prompt_tokens
+        })
+        session['extracted_data'] = extracted_data_list
+        # Redirect to the same page to show the results
+        return redirect(url_for('chatbot.main'))
+    
+    if 'delete_history' in request.form:
         session['chat_history'] = []
+        session['uploaded_Img_text']= []
+        session['uploaded_Img_text_summary']= []
+        return redirect(url_for('chatbot.main'))
+
 
     chat_history = session['chat_history']
     
@@ -33,21 +62,22 @@ def main():
                 chat_history.append(("Bot", bot_msg))
                 session['chat_history'] = chat_history
     
+    uploaded_Img_text_summary = []
+    if 'uploaded_Img_text_summary' in session:
+        uploaded_Img_text_summary = session['uploaded_Img_text_summary']
+    
     uploaded_Img_text = []
     if 'uploaded_Img_text' in session:
         uploaded_Img_text = session['uploaded_Img_text']
-    # image_preview = None
-    # if 'uploaded_Img_text' in session:
-    #     image_preview = url_for('static', filename=f"static/uploads/{session['downsized_doc_image_filename']}")
-    #     print(f"static/uploads/{session['downsized_doc_image_filename']}")
-    return render_template('chatbot_main.html', chat_history=chat_history, uploaded_Img_text=uploaded_Img_text)
+
+    return render_template('chatbot_main.html', chat_history=chat_history, uploaded_Img_text=extracted_data_list)
 
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
 def click_doc():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
-
+    
     if request.method == 'POST':
         data_url = request.form.get('image_data')
 
@@ -76,10 +106,14 @@ def click_doc():
                 session['uploaded_Img_text'] = []
             uploaded_Img_text = session['uploaded_Img_text']
             uploaded_Img_text.append(extracted_data.content)
-            session['uploaded_Img_text'] = uploaded_Img_text 
-            
-            return redirect(url_for('chatbot.main'))
+            session['uploaded_Img_text'] = uploaded_Img_text
 
+            if 'uploaded_Img_text_summary' not in session:
+                session['uploaded_Img_text_summary'] = []
+            uploaded_Img_text_summary = session['uploaded_Img_text_summary']
+            uploaded_Img_text_summary.append(extracted_data.summary)
+            session['uploaded_Img_text_summary'] = uploaded_Img_text_summary             
+            return redirect(url_for('click_doc.html'))
     return render_template('click_doc.html')
 
 
