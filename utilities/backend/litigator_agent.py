@@ -30,15 +30,25 @@ class demographic_extractor_struct(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+
 class demographicextractorAgent():
     def __init__(self, chat_history:List, 
                 uploaded_Img_text:List, 
                 uploaded_Img_text_summary:List):
         
-        
-        self.chat_history = "\n".join([x[0] + ": " + x[1] for x in chat_history])
-        self.uploaded_Img_text = "\n".join(uploaded_Img_text)
-        self.uploaded_Img_text_summary = "\n".join(uploaded_Img_text_summary)
+        print(type(chat_history))
+        if type(chat_history)== str: 
+            self.chat_history = chat_history
+        else:
+            self.chat_history = "\n".join([x[0] + ": " + x[1] for x in chat_history])
+        if type(uploaded_Img_text)== str:
+            self.uploaded_Img_text = uploaded_Img_text 
+        else:
+            self.uploaded_Img_text = [x[0] + ": " + x[1] for x in uploaded_Img_text]
+        if type(uploaded_Img_text_summary)== str:
+            self.uploaded_Img_text_summary = uploaded_Img_text_summary
+        else:
+            self.uploaded_Img_text_summary = [x[0] + ": " + x[1] for x in uploaded_Img_text_summary]
 
     def extract_Ids(self):        
         client = OpenAI()
@@ -64,3 +74,68 @@ class demographicextractorAgent():
         json_serializable = parsed.model_dump()  # or parsed.dict()
         json_string = json.dumps(json_serializable)
         return json_serializable
+    
+
+class OrchestratorItem(BaseModel):
+    Step_id: int
+    Instructions: str
+    input_required: List[str]
+    output_required: List[str]
+    tools: Optional[List[str]] = None
+    model_config = ConfigDict(extra="forbid")  # 👈 Required!
+
+class Orchestrator_struct(BaseModel):
+    Orchestrator: List[OrchestratorItem]
+    completion_tokens: int
+    prompt_tokens: int
+    model_config = ConfigDict(extra="forbid")
+
+
+class orchestratorAgent():
+    def __init__(self, chat_history:List, 
+                uploaded_Img_text:List, 
+                uploaded_Img_text_summary:List):
+        self.chat_history = "\n".join([x[0] + ": " + x[1] for x in chat_history])
+        self.uploaded_Img_text = "\n".join(uploaded_Img_text)
+        self.uploaded_Img_text_summary = "\n".join(uploaded_Img_text_summary)
+        self.demographicextractorAgent_obj = demographicextractorAgent(
+            chat_history=self.chat_history,
+            uploaded_Img_text=self.uploaded_Img_text,
+            uploaded_Img_text_summary=self.uploaded_Img_text_summary
+        )
+        self.Party_Id_data = self.demographicextractorAgent_obj.extract_Ids()
+        
+
+    def orchestrate(self):
+        client = OpenAI()
+        response = client.beta.chat.completions.parse(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": [
+                        {"type": "text", "text": '''You are a helpful litigator and your task is to help the user. You need to provide 
+                         an orchestration plan for the given Information. The plan should include what are the tasks a litigator needs
+                         to do given the chat with user. You have to base you plan on the chat history, the uploaded image text,
+                         the uploaded image text summary, and the Party Identifier data. The plan should be in JSON format with the following structure: 
+                         Each step should have a unique Step_id, clear Instructions, input_required, output_required, and 
+                         optional tools that can be used.'''},
+                    ]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "uploaded_Img_text": self.uploaded_Img_text},
+                        {"type": "text", "uploaded_Img_text_summary": self.uploaded_Img_text_summary},
+                        {"type": "text", "chat_history": self.chat_history},
+                        {"type": "text", "Party_ID_Data": self.Party_Id_data},
+                    ]
+                }
+            ],
+            response_format=Orchestrator_struct
+        )
+        parsed = response.choices[0].message.parsed
+        json_serializable = parsed.model_dump()  # or parsed.dict()
+        json_string = json.dumps(json_serializable)
+        return json_serializable
+        

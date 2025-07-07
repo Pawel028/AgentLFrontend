@@ -9,7 +9,7 @@ import json
 # from azure.core.serialization import serialize_model
 from utilities.backend.docrecognizer import AzureDocIntelligenceClient
 from utilities.backend.doc_extracter_agent import extractorAgent
-from utilities.backend.litigator_agent import demographicextractorAgent
+from utilities.backend.litigator_agent import orchestratorAgent
 chatbot_bp = Blueprint('chatbot', __name__)
 doc_intelligence_client = AzureDocIntelligenceClient(endpoint = os.getenv('DOCUMENTINTELLIGENCE_ENDPOINT'), key = os.getenv('DOCUMENTINTELLIGENCE_KEY'))
 
@@ -17,30 +17,20 @@ doc_intelligence_client = AzureDocIntelligenceClient(endpoint = os.getenv('DOCUM
 def main():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
-    
-    if 'extracted_data' not in session:
-        session['extracted_data'] = []
-    extracted_data_list = session['extracted_data']
+
+    if 'orchestrator_response' not in session:
+        session['orchestrator_response'] = []  
+    orchestrator_response = session['orchestrator_response']
 
     if 'generate_results' in request.form:
-        # Generate results button was clicked
-        demographicextractorAgent_obj = demographicextractorAgent(
+        orchestratorAgent_obj = orchestratorAgent(
             chat_history=session.get('chat_history', []),
             uploaded_Img_text=session.get('uploaded_Img_text', []),
             uploaded_Img_text_summary=session.get('uploaded_Img_text_summary', [])
         )
-        extracted_data = demographicextractorAgent_obj.extract_Ids()
-        print(extracted_data)
-        if 'extracted_data' not in session:
-            session['extracted_data'] = []  
-        extracted_data_list = session['extracted_data']
-        extracted_data_list.append({
-            'Party_Identifier': extracted_data['Party_Identifier'],
-            'completion_tokens': extracted_data['completion_tokens'],
-            'prompt_tokens': extracted_data['prompt_tokens']
-        })
-        session['extracted_data'] = extracted_data_list
-        # Redirect to the same page to show the results
+        orchestrator_response = orchestratorAgent_obj.orchestrate()
+        print(orchestrator_response)
+        session['orchestrator_response'] = orchestrator_response   
         return redirect(url_for('chatbot.main'))
     
     if 'delete_history' in request.form:
@@ -72,7 +62,7 @@ def main():
     if 'uploaded_Img_text' in session:
         uploaded_Img_text = session['uploaded_Img_text']
 
-    return render_template('chatbot_main.html', chat_history=chat_history, uploaded_Img_text=extracted_data_list)
+    return render_template('chatbot_main.html', chat_history=chat_history, uploaded_Img_text=orchestrator_response['Orchestrator'])
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
 def click_doc():
