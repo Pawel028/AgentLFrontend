@@ -19,7 +19,7 @@ def main():
         return redirect(url_for('auth.login'))
 
     if 'orchestrator_response' not in session:
-        session['orchestrator_response'] = []  
+        session['orchestrator_response'] = {'Orchestrator':" "}
     orchestrator_response = session['orchestrator_response']
 
     if 'generate_results' in request.form:
@@ -37,6 +37,8 @@ def main():
         session['chat_history'] = []
         session['uploaded_Img_text']= []
         session['uploaded_Img_text_summary']= []
+        session['orchestrator_response'] = {'Orchestrator':" "}
+        orchestrator_response = session['orchestrator_response']
         return redirect(url_for('chatbot.main'))
 
     if 'chat_history' not in session:
@@ -62,7 +64,7 @@ def main():
     if 'uploaded_Img_text' in session:
         uploaded_Img_text = session['uploaded_Img_text']
 
-    return render_template('chatbot_main.html', chat_history=chat_history, uploaded_Img_text=orchestrator_response['Orchestrator'])
+    return render_template('chatbot_main.html', chat_history=chat_history, orchestrator_response=session['orchestrator_response'])
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
 def click_doc():
