@@ -117,7 +117,8 @@ class orchestratorAgent():
                         {"type": "text", "text": '''You are a helpful litigator and your task is to help the user. You need to provide 
                          an orchestration plan for the given Information. The plan should include what are the tasks a litigator needs
                          to do given the chat with user. You have to base you plan on the chat history, the uploaded image text,
-                         the uploaded image text summary, and the Party Identifier data. The plan should be in JSON format with the following structure: 
+                         the uploaded image text summary, and the Party Identifier data. You have to focus on solving the user Issue in the current instance.
+                         The plan should be in JSON format with the following structure: 
                          Each step should have a unique Step_id, clear Instructions, input_required, output_required, and 
                          optional tools that can be used.'''},
                     ]
@@ -125,10 +126,10 @@ class orchestratorAgent():
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "uploaded_Img_text": self.uploaded_Img_text},
-                        {"type": "text", "uploaded_Img_text_summary": self.uploaded_Img_text_summary},
-                        {"type": "text", "chat_history": self.chat_history},
-                        {"type": "text", "Party_ID_Data": self.Party_Id_data},
+                        {"type": "text", "text": f'''Text in Image:{self.uploaded_Img_text} \n 
+                         Summary of Text in Image: {self.uploaded_Img_text_summary} \n 
+                         Chat History: {self.chat_history} \n 
+                         Party Identifier Data: {self.Party_Id_data}'''}
                     ]
                 }
             ],
