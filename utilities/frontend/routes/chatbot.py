@@ -64,7 +64,8 @@ def main():
     if 'uploaded_Img_text' in session:
         uploaded_Img_text = session['uploaded_Img_text']
 
-    return render_template('chatbot_main.html', chat_history=chat_history, orchestrator_response=session['orchestrator_response'])
+
+    return render_template('chatbot_main.html', chat_history=chat_history, orchestrator_response=orchestrator_response['Orchestrator'])
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
 def click_doc():
