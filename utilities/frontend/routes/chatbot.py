@@ -26,12 +26,14 @@ def main():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
 
-    # session.setdefault('lawyer_response', "")
-    # session.setdefault('chat_history', [])
-    # session.setdefault('uploaded_Img_text', [])
-    # session.setdefault('uploaded_Img_text_summary', [])
+    session.setdefault('lawyer_response', "")
+    session.setdefault('chat_history', [])
+    session.setdefault('uploaded_Img_text', [])
+    session.setdefault('uploaded_Img_text_summary', [])
 
-    chat_history = session['chat_history']
+    # if 'chat_history' not in session:
+    #     session['chat_history'] = []
+    # chat_history = session['chat_history']
 
     if 'generate_results' in request.form:
         orchestratorAgent_obj = lawyerAgent(
