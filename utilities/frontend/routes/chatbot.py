@@ -1,106 +1,135 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for
+from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
 import os
-from werkzeug.utils import secure_filename
 import base64
 from PIL import Image
 import io
 import uuid
 import json
-# from azure.core.serialization import serialize_model
+from threading import Thread
+
 from utilities.backend.docrecognizer import AzureDocIntelligenceClient
 from utilities.backend.doc_extracter_agent import extractorAgent
-from utilities.backend.litigator_agent import orchestratorAgent,lawyerAgent
-chatbot_bp = Blueprint('chatbot', __name__)
-doc_intelligence_client = AzureDocIntelligenceClient(endpoint = os.getenv('DOCUMENTINTELLIGENCE_ENDPOINT'), key = os.getenv('DOCUMENTINTELLIGENCE_KEY'))
+from utilities.backend.litigator_agent import lawyerAgent
 
+chatbot_bp = Blueprint('chatbot', __name__)
+doc_intelligence_client = AzureDocIntelligenceClient(
+    endpoint=os.getenv('DOCUMENTINTELLIGENCE_ENDPOINT'),
+    key=os.getenv('DOCUMENTINTELLIGENCE_KEY')
+)
+
+# 🔁 Shared in-memory result store
+result_store = {}
+
+# ---------------------- ROUTE: /main ----------------------
 @chatbot_bp.route('/main', methods=['GET', 'POST'])
 def main():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
 
-    if 'lawyer_response' not in session:
-        session['lawyer_response'] = ""
-    lawyer_response = session['lawyer_response']
-    # print(session['lawyer_response'])
+    # session.setdefault('lawyer_response', "")
+    # session.setdefault('chat_history', [])
+    # session.setdefault('uploaded_Img_text', [])
+    # session.setdefault('uploaded_Img_text_summary', [])
 
-    if 'chat_history' not in session:
-        session['chat_history'] = []
     chat_history = session['chat_history']
 
     if 'generate_results' in request.form:
         orchestratorAgent_obj = lawyerAgent(
-            chat_history=session.get('chat_history', []),
-            uploaded_Img_text=session.get('uploaded_Img_text', []),
-            uploaded_Img_text_summary=session.get('uploaded_Img_text_summary', [])
+            chat_history=session['chat_history'],
+            uploaded_Img_text=session['uploaded_Img_text'],
+            uploaded_Img_text_summary=session['uploaded_Img_text_summary']
         )
+        print(session['uploaded_Img_text_summary'])
         lawyer_response = orchestratorAgent_obj.finalize()
-        print(lawyer_response)
-        session['lawyer_response'] = lawyer_response   
+        session['lawyer_response'] = lawyer_response
         return redirect(url_for('chatbot.main'))
-    
+
     if 'delete_history' in request.form:
         session['chat_history'] = []
-        session['uploaded_Img_text']= []
-        session['uploaded_Img_text_summary']= []
+        session['uploaded_Img_text'] = []
+        session['uploaded_Img_text_summary'] = []
         session['lawyer_response'] = ""
-        lawyer_response = session['lawyer_response']
-        return redirect(url_for('chatbot.main'))    
-    
+        return redirect(url_for('chatbot.main'))
+
     if request.method == 'POST':
-        if 'delete_history' in request.form:
-            session['chat_history'] = []
-        else:
-            user_msg = request.form.get('user_input')
-            if user_msg:
-                bot_msg = f"You said: {user_msg}"
-                chat_history.append(("User", user_msg))
-                chat_history.append(("Bot", bot_msg))
-                session['chat_history'] = chat_history
+        user_msg = request.form.get('user_input')
+        if user_msg:
+            bot_msg = f"You said: {user_msg}"
+            chat_history.append(("User", user_msg))
+            chat_history.append(("Bot", bot_msg))
+            session['chat_history'] = chat_history
 
-    # print(chat_history,lawyer_response)
-    return render_template('chatbot_main.html', chat_history=chat_history, lawyer_response=lawyer_response)
+    return render_template(
+        'chatbot_main.html',
+        chat_history=chat_history,
+        lawyer_response=session.get('lawyer_response', "")
+    )
 
+# ---------------------- ROUTE: /click-doc ----------------------
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
 def click_doc():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
-    
+
     if request.method == 'POST':
         data_url = request.form.get('image_data')
-
         if data_url:
-            # Extract base64 string
             header, encoded = data_url.split(",", 1)
             image_bytes = base64.b64decode(encoded)
 
-            # 🔍 OPTIONAL: Verify it's a valid image by loading it
             try:
                 Image.open(io.BytesIO(image_bytes))
             except Exception as e:
-                return f"Image is invalid: {e}"
+                return f"Invalid image: {e}"
 
-            # ✅ Call Azure with raw image bytes
-            # try:
-            text = doc_intelligence_client.analyze_read(
-                bytes_data1=image_bytes,  # now raw bytes
-            )
-            # result_dict = serialize_model(text)
-            print(type(text))            
-            result_json = json.dumps(text)
-            extractorAgent_obj = extractorAgent(result_json)
-            extracted_data = extractorAgent_obj.extract()
-            if 'uploaded_Img_text' not in session:
-                session['uploaded_Img_text'] = []
-            uploaded_Img_text = session['uploaded_Img_text']
-            uploaded_Img_text.append(extracted_data.content)
+            session_id = str(uuid.uuid4())
+            session['job_id'] = session_id
 
-            session['uploaded_Img_text'] = uploaded_Img_text
-            print(session['uploaded_Img_text'])
+            # 🔁 Background thread for doc processing
+            thread = Thread(target=background_doc_process, args=(image_bytes, session_id))
+            thread.start()
 
-            if 'uploaded_Img_text_summary' not in session:
-                session['uploaded_Img_text_summary'] = []
-            uploaded_Img_text_summary = session['uploaded_Img_text_summary']
-            uploaded_Img_text_summary.append(extracted_data.summary)
-            session['uploaded_Img_text_summary'] = uploaded_Img_text_summary             
             return redirect(url_for('chatbot.click_doc'))
+
     return render_template('click_doc.html')
+
+# ---------------------- BACKGROUND THREAD TO PREPARE RESULT ----------------------
+def background_doc_process(image_bytes, session_id):
+    print("📄 Running Azure Document Intelligence...")
+
+    text = doc_intelligence_client.analyze_read(bytes_data1=image_bytes)
+    result_json = json.dumps(text)
+
+    extractorAgent_obj = extractorAgent(result_json)
+    extracted_data = extractorAgent_obj.extract()
+
+    result_store[session_id] = {
+        "content": extracted_data.content,
+        "summary": extracted_data.summary
+    }
+
+    print(f"[INFO] ✅ Result prepared for session: {session_id}")
+
+# ---------------------- ROUTE: /process-doc ----------------------
+@chatbot_bp.route('/process-doc', methods=['GET'])
+def run_doc_intelligence():
+    session_id = session.get('job_id')
+    if not session_id:
+        return jsonify({"status": "no_job"})
+
+    content = session['uploaded_Img_text']
+    summary = session['uploaded_Img_text_summary']
+    if session_id in result_store:
+        result = result_store.pop(session_id)
+
+        content.append(result['content'])
+        summary.append(result['summary'])
+        session['uploaded_Img_text'] = content
+        session['uploaded_Img_text_summary'] = summary
+
+
+        print(f"[INFO] ✅ Result moved to session for {session_id}")
+        print(session['uploaded_Img_text_summary'])
+        return jsonify({"status": "done", "content": result['content'], "summary": result['summary']})
+
+    return jsonify({"status": "processing"})

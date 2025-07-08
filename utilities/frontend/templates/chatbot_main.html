@@ -154,5 +154,36 @@
             chatbox.scrollTop = chatbox.scrollHeight;
         }
     </script>
+    <button id="checkDocStatusBtn">📄 Check Document Status</button>
+    <div id="docStatus"></div>
+
+    <script>
+    document.getElementById('checkDocStatusBtn').addEventListener('click', function () {
+        document.getElementById('docStatus').innerText = "⏳ Checking...";
+
+        fetch('/process-doc')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'done') {
+                    document.getElementById('docStatus').innerText = "✅ Document processed!";
+                    // Optional: Show summary and content
+                    const resultText = `
+                        ✅ Extracted Content:\n${data.content}\n\n
+                        ✍️ Summary:\n${data.summary}
+                    `;
+                    alert(resultText);  // or show in a div
+                } else if (data.status === 'processing') {
+                    document.getElementById('docStatus').innerText = "⚙️ Still processing. Try again shortly.";
+                } else {
+                    document.getElementById('docStatus').innerText = "❌ No job in queue.";
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById('docStatus').innerText = "⚠️ Error occurred.";
+            });
+    });
+    </script>
+
 </body>
 </html>
