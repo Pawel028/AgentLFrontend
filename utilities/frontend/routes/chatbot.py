@@ -19,9 +19,13 @@ def main():
         return redirect(url_for('auth.login'))
 
     if 'lawyer_response' not in session:
-        session['lawyer_response'] = {'Orchestrator':" "}
+        session['lawyer_response'] = ""
     lawyer_response = session['lawyer_response']
     # print(session['lawyer_response'])
+
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+    chat_history = session['chat_history']
 
     if 'generate_results' in request.form:
         orchestratorAgent_obj = lawyerAgent(
@@ -38,13 +42,9 @@ def main():
         session['chat_history'] = []
         session['uploaded_Img_text']= []
         session['uploaded_Img_text_summary']= []
-        session['lawyer_response'] = {'Orchestrator':" "}
+        session['lawyer_response'] = ""
         lawyer_response = session['lawyer_response']
-        return redirect(url_for('chatbot.main'))
-
-    if 'chat_history' not in session:
-        session['chat_history'] = []
-    chat_history = session['chat_history']
+        return redirect(url_for('chatbot.main'))    
     
     if request.method == 'POST':
         if 'delete_history' in request.form:
@@ -56,16 +56,8 @@ def main():
                 chat_history.append(("User", user_msg))
                 chat_history.append(("Bot", bot_msg))
                 session['chat_history'] = chat_history
-    
-    uploaded_Img_text_summary = []
-    if 'uploaded_Img_text_summary' in session:
-        uploaded_Img_text_summary = session['uploaded_Img_text_summary']
-    
-    uploaded_Img_text = []
-    if 'uploaded_Img_text' in session:
-        uploaded_Img_text = session['uploaded_Img_text']
 
-    print(session['uploaded_Img_text'])
+    # print(chat_history,lawyer_response)
     return render_template('chatbot_main.html', chat_history=chat_history, lawyer_response=lawyer_response)
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
