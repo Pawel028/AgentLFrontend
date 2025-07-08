@@ -117,11 +117,11 @@
                         <span class="{{ 'user' if sender == 'User' else 'bot' }}">{{ sender }}:</span> {{ message }}
                     </div>
                 {% endfor %}
-                {% for message in orchestrator_response %}
-                    <div class="message">
-                        <span class="bot">Document Info:</span> {{ message }}
-                    </div>
-                {% endfor %}
+                
+                <div class="message">
+                    <span class="bot">Final Results:</span> {{ lawyer_response }}
+                </div>
+            
             </div>
 
             <form method="POST">

@@ -9,7 +9,7 @@ import json
 # from azure.core.serialization import serialize_model
 from utilities.backend.docrecognizer import AzureDocIntelligenceClient
 from utilities.backend.doc_extracter_agent import extractorAgent
-from utilities.backend.litigator_agent import orchestratorAgent
+from utilities.backend.litigator_agent import orchestratorAgent,lawyerAgent
 chatbot_bp = Blueprint('chatbot', __name__)
 doc_intelligence_client = AzureDocIntelligenceClient(endpoint = os.getenv('DOCUMENTINTELLIGENCE_ENDPOINT'), key = os.getenv('DOCUMENTINTELLIGENCE_KEY'))
 
@@ -18,27 +18,28 @@ def main():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
 
-    if 'orchestrator_response' not in session:
-        session['orchestrator_response'] = {'Orchestrator':" "}
-    orchestrator_response = session['orchestrator_response']
+    if 'lawyer_response' not in session:
+        session['lawyer_response'] = {'Orchestrator':" "}
+    lawyer_response = session['lawyer_response']
+    # print(session['lawyer_response'])
 
     if 'generate_results' in request.form:
-        orchestratorAgent_obj = orchestratorAgent(
+        orchestratorAgent_obj = lawyerAgent(
             chat_history=session.get('chat_history', []),
             uploaded_Img_text=session.get('uploaded_Img_text', []),
             uploaded_Img_text_summary=session.get('uploaded_Img_text_summary', [])
         )
-        orchestrator_response = orchestratorAgent_obj.orchestrate()
-        print(orchestrator_response)
-        session['orchestrator_response'] = orchestrator_response   
+        lawyer_response = orchestratorAgent_obj.finalize()
+        print(lawyer_response)
+        session['lawyer_response'] = lawyer_response   
         return redirect(url_for('chatbot.main'))
     
     if 'delete_history' in request.form:
         session['chat_history'] = []
         session['uploaded_Img_text']= []
         session['uploaded_Img_text_summary']= []
-        session['orchestrator_response'] = {'Orchestrator':" "}
-        orchestrator_response = session['orchestrator_response']
+        session['lawyer_response'] = {'Orchestrator':" "}
+        lawyer_response = session['lawyer_response']
         return redirect(url_for('chatbot.main'))
 
     if 'chat_history' not in session:
@@ -64,8 +65,8 @@ def main():
     if 'uploaded_Img_text' in session:
         uploaded_Img_text = session['uploaded_Img_text']
 
-
-    return render_template('chatbot_main.html', chat_history=chat_history, orchestrator_response=orchestrator_response['Orchestrator'])
+    print(session['uploaded_Img_text'])
+    return render_template('chatbot_main.html', chat_history=chat_history, lawyer_response=lawyer_response)
 
 @chatbot_bp.route('/click-doc', methods=['GET', 'POST'])
 def click_doc():
@@ -100,7 +101,9 @@ def click_doc():
                 session['uploaded_Img_text'] = []
             uploaded_Img_text = session['uploaded_Img_text']
             uploaded_Img_text.append(extracted_data.content)
+
             session['uploaded_Img_text'] = uploaded_Img_text
+            print(session['uploaded_Img_text'])
 
             if 'uploaded_Img_text_summary' not in session:
                 session['uploaded_Img_text_summary'] = []

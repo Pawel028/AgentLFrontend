@@ -12,7 +12,7 @@ def get_connection():
     return pyodbc.connect(
         f"DRIVER={{ODBC Driver 17 for SQL Server}};"
         f"SERVER={server};DATABASE={database};UID={username};PWD={sql_password};"
-        f"Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+        f"Encrypt=yes;TrustServerCertificate=no;Connection Timeout=300;"
     )
 
 def init_db():
