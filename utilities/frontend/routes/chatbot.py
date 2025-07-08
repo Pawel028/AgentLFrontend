@@ -26,15 +26,20 @@ def main():
     if 'user' not in session:
         return redirect(url_for('auth.login'))
 
-    session.setdefault('lawyer_response', "")
-    session.setdefault('chat_history', [])
-    session.setdefault('uploaded_Img_text', [])
-    session.setdefault('uploaded_Img_text_summary', [])
+    # session.setdefault('lawyer_response', "")
+    # session.setdefault('chat_history', [])
+    # session.setdefault('uploaded_Img_text', [])
+    # session.setdefault('uploaded_Img_text_summary', [])
 
-    # if 'chat_history' not in session:
-    #     session['chat_history'] = []
-    # chat_history = session['chat_history']
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+    chat_history = session['chat_history'] 
 
+    if 'lawyer_response' not in session:
+        session['lawyer_response'] = []
+    # lawyer_response = session['lawyer_response'] 
+
+    print('lawyer_response: ',session.setdefault('lawyer_response', ""))
     if 'generate_results' in request.form:
         orchestratorAgent_obj = lawyerAgent(
             chat_history=session['chat_history'],
@@ -43,7 +48,9 @@ def main():
         )
         print(session['uploaded_Img_text_summary'])
         lawyer_response = orchestratorAgent_obj.finalize()
-        session['lawyer_response'] = lawyer_response
+        lawyer_response1 = session['lawyer_response']
+        lawyer_response1.append(lawyer_response)
+        session['lawyer_response'] = lawyer_response1
         return redirect(url_for('chatbot.main'))
 
     if 'delete_history' in request.form:
