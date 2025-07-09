@@ -48,7 +48,7 @@ def main():
         )
         print(session['uploaded_Img_text_summary'])
         lawyer_response = orchestratorAgent_obj.finalize()
-        lawyer_response1 = session['lawyer_response']
+        lawyer_response1 = [session['lawyer_response']]
         lawyer_response1.append(lawyer_response)
         session['lawyer_response'] = lawyer_response1
         return redirect(url_for('chatbot.main'))

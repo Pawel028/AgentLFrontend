@@ -7,6 +7,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ConfigDict,validator
 from typing import Optional, List, Dict, Any
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 load_dotenv(find_dotenv())
 
 openai.api_version = "2022-12-01"
@@ -211,11 +212,30 @@ class litigatorAgent():
         json_string = json.dumps(json_serializable)
         return json_serializable
     
+    # def execute_all_tasks(self):
+    #     results = []
+    #     for item in self.task_list['Orchestrator']:
+    #         result = self.execute_task(item)
+    #         results.append(result)
+    #     return results    
+
+
     def execute_all_tasks(self):
         results = []
-        for item in self.task_list['Orchestrator']:
-            result = self.execute_task(item)
-            results.append(result)
+        with ThreadPoolExecutor() as executor:
+            # Submit all tasks
+            future_to_task = {
+                executor.submit(self.execute_task, item): item
+                for item in self.task_list['Orchestrator']
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_task):
+                try:
+                    result = future.result()
+                    results.append(result)
+                except Exception as e:
+                    print(f"Error in task {future_to_task[future]}: {e}")
         return results
     
     def collate_results_into_text(self, results: List[Dict[str, Any]]) -> str:
