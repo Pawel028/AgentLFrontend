@@ -15,10 +15,12 @@
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            gap: 30px;
+            gap: 5px;
             width: 90%;
-            max-width: 1200px;
-            margin: 40px auto;
+            max-width: 1000px;
+            margin: 50px left auto;
+            padding: 30px;
+            
         }
 
         .chat-section, .preview-section {
@@ -103,6 +105,26 @@
                 flex-direction: column;
             }
         }
+        #sidebar {
+            position: fixed;
+            right: 20px;
+            top: 40px; /* adjust based on header */
+            width: 400px;
+            height: 500px;
+            overflow-y: auto;
+            background-color: #f1f1f1;
+            border-left: 1px solid #ccc;
+            padding: 15px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            font-size: 14px;
+            }
+        @media (max-width: 768px) {
+            #sidebar {
+                display: none;
+            }
+            }
+
+
     </style>
 </head>
 <body>
@@ -184,6 +206,27 @@
             });
     });
     </script>
+    <script>
+    window.onload = function() {
+        fetch('/get_uploaded_img_text')
+        .then(response => response.json())
+        .then(data => {
+            const pre = document.getElementById("img-text-content");
+            if (data.text && data.text.length > 0) {
+            pre.innerText = data.text.join('\n');
+            } else {
+            pre.innerText = "No extracted text found.";
+            }
+        });
+    };
+    </script>
+
+
+    <!-- Sidebar for Uploaded Image Text -->
+    <div id="sidebar">
+    <h4>Extracted Text</h4>
+    <pre id="img-text-content">Loading...</pre>
+    </div>
 
 </body>
 </html>

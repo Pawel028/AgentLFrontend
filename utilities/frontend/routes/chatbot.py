@@ -153,3 +153,8 @@ def run_doc_intelligence():
     # Still processing
     return jsonify({"status": "processing"})
 
+# ---------------------- ROUTE: /get-uploaded-img-text ----------------------
+@chatbot_bp.route('/get_uploaded_img_text', methods=['GET'])
+def get_uploaded_img_text():
+    text = session.get('uploaded_Img_text', [])
+    return jsonify({"text": text})
