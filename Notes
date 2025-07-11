@@ -1,0 +1,11 @@
+Add the functionality to add the pdfs/pictures and save it on azure storage accounts. 
+This should be a better approach as it reduces all the confusion. Storage account details like how many folders can be created (assuming each folder for a user.)
+
+Work on creating the tools and agents.
+
+Logging module creation.
+
+Think on creating the embeddings of all the uploaded documents by indexing it (is it a good approach to use). 
+Non-relational database would not have the text stored only the metadata.
+
+Mem0 library for enriching user experience. Keep the memory of the chatbot updated.

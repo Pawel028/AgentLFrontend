@@ -123,22 +123,33 @@ def background_doc_process(image_bytes, session_id):
 @chatbot_bp.route('/process-doc', methods=['GET'])
 def run_doc_intelligence():
     session_id = session.get('job_id')
+    print(session)
     if not session_id:
         return jsonify({"status": "no_job"})
 
-    content = session['uploaded_Img_text']
-    summary = session['uploaded_Img_text_summary']
+    # If the background thread has completed processing
     if session_id in result_store:
-        result = result_store.pop(session_id)
+        result = result_store.pop(session_id, None)
 
-        content.append(result['content'])
-        summary.append(result['summary'])
-        session['uploaded_Img_text'] = content
-        session['uploaded_Img_text_summary'] = summary
-
-
+        # Safely retrieve or initialize session lists
+        # session.setdefault('uploaded_Img_text', [])
+        # session.setdefault('uploaded_Img_text_summary', [])
+        uploaded_text = session['uploaded_Img_text']
+        uploaded_text_summary = session['uploaded_Img_text_summary']
+        uploaded_text.append(result.get('content', ''))
+        uploaded_text_summary.append(result.get('summary', ''))
+        session['uploaded_Img_text'] = uploaded_text
+        session['uploaded_Img_text_summary'] = uploaded_text_summary
+        session['job_id'] = None
         print(f"[INFO] ✅ Result moved to session for {session_id}")
-        print(session['uploaded_Img_text_summary'])
-        return jsonify({"status": "done", "content": result['content'], "summary": result['summary']})
+        print("📄 Summary:", session['uploaded_Img_text_summary'])
 
+        return jsonify({
+            "status": "done",
+            "content": result.get('content', ''),
+            "summary": result.get('summary', '')
+        })
+
+    # Still processing
     return jsonify({"status": "processing"})
+
