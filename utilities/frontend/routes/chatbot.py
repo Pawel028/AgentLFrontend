@@ -37,6 +37,14 @@ def main():
 
     if 'lawyer_response' not in session:
         session['lawyer_response'] = []
+
+    if 'uploaded_Img_text' not in session:
+        session['uploaded_Img_text'] = []
+    
+    if 'uploaded_Img_text_summary' not in session:
+        session['uploaded_Img_text_summary'] = []
+    
+    
     # lawyer_response = session['lawyer_response'] 
 
     print('lawyer_response: ',session.setdefault('lawyer_response', ""))
