@@ -1,6 +1,13 @@
 import pyodbc
 import os
 import dotenv
+# database.py
+from pymongo import MongoClient
+# import os
+# from dotenv import load_dotenv
+
+# load_dotenv()
+
 dotenv.load_dotenv()
 
 server = 'railway-ml.database.windows.net'
@@ -35,3 +42,9 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
+
+
+def get_db():
+    client = MongoClient(os.getenv("MONGODB_URI"))  # e.g., "mongodb+srv://<user>:<pass>@cluster0.mongodb.net/mydb"
+    db = client["AgentLawDB"]
+    return db
