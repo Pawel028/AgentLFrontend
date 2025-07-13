@@ -8,6 +8,7 @@ import json
 from threading import Thread
 from datetime import datetime
 import requests
+from utilities.frontend.ask_info_from_user import AskInfo
 chatbot_bp = Blueprint('chatbot', __name__)
 # container_name = os.getenv('BLOB_CONTAINER_NAME')
 # 🔁 Shared in-memory result store
@@ -123,10 +124,19 @@ def main():
         response = requests.post(target_url, json=payload)
         # print(response)
         print(response.content)
-        lawyer_response = response.json()['lawyer_response']
-        if isinstance(session['lawyer_response'], str):
-            session['lawyer_response'] = []
-        session['lawyer_response'].append(lawyer_response)
+        lawyer_response = response.json()['lawyer_response']        
+        # chat_history = session.get('chat_history')        
+        # chat_history.append(("Bot", lawyer_response))        
+        # session['chat_history'] = chat_history
+
+        chat_history = session.get('chat_history', [])
+        chat_history.append(("Bot", lawyer_response))
+        session['chat_history'] = chat_history
+
+        # print(session['chat_history'])
+        # if isinstance(session['lawyer_response'], str):
+        #     session['lawyer_response'] = []
+        # session['lawyer_response'].append(lawyer_response)
         return redirect(url_for('chatbot.main'))
 
     # ❌ Reset chat
@@ -143,9 +153,9 @@ def main():
         if user_msg:
             chat_history = session.get('chat_history', [])
             chat_history.append(("User", user_msg))
-            chat_history.append(("Bot", f"You said: {user_msg}"))
+            chat_history.append(("Bot", f"{AskInfo(user_msg,chat_history)}"))
             session['chat_history'] = chat_history
-
+    print(session['chat_history'])
     return render_template(
         'chatbot_main.html',
         chat_history=session['chat_history'],

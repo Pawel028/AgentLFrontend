@@ -17,3 +17,4 @@ langchain-community
 azure-storage-blob 
 azure-identity
 pymongo
+flask_session

@@ -218,13 +218,13 @@
             <span class="{{ 'user' if sender == 'User' else 'bot' }}">{{ sender }}:</span> {{ message }}
           </div>
         {% endfor %}
-        <div class="message">
+        <!-- <div class="message">
           <span class="bot">Final Results:</span> {{ lawyer_response }}
-        </div>
+        </div> -->
       </div>
 
       <form method="POST">
-        <input type="text" name="user_input" placeholder="Type your message..." required>
+        <input type="text" name="user_input" placeholder="Type your message...">
         <div class="nav-buttons">
           <button type="submit">Send</button>
           <button type="submit" name="delete_history" value="1">🗑️ Clear Chat</button>

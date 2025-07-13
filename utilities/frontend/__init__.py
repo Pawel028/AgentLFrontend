@@ -3,7 +3,8 @@ from flask import Flask
 from flask_mail import Mail
 import os
 from utilities.frontend.database import init_db,get_db
-
+from flask import Flask
+from flask_session import Session
 mail = Mail()
 
 def create_app():
@@ -19,6 +20,14 @@ def create_app():
         MAIL_USERNAME=os.getenv('EMAIL_USER'),
         MAIL_PASSWORD=os.getenv('EMAIL_PASS')
     )
+    # ✅ Session Config
+    app.config['SESSION_TYPE'] = 'filesystem'  # or 'mongodb', 'redis', etc.
+    app.config['SESSION_FILE_DIR'] = './.flask_session/'  # only for 'filesystem'
+    app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_USE_SIGNER'] = True
+    # ✅ Initialize server-side session
+    Session(app)
+    
     mail.init_app(app)
 
     # Initialize DB
