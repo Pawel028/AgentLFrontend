@@ -7,6 +7,7 @@ import uuid
 import json
 from threading import Thread
 from datetime import datetime
+import requests
 from utilities.backend.docrecognizer import AzureDocIntelligenceClient
 from utilities.backend.doc_extracter_agent import extractorAgent
 from utilities.backend.litigator_agent import lawyerAgent
@@ -19,6 +20,12 @@ doc_intelligence_client = AzureDocIntelligenceClient(
 container_name = os.getenv('BLOB_CONTAINER_NAME')
 # 🔁 Shared in-memory result store
 result_store = {}
+
+def clean_string(byte_str):
+    # byte_str = b'["chat-20250712-202142","chat-20250712-211204"]\n'
+    clean_str = byte_str.decode('utf-8').strip()
+    session_list = json.loads(clean_str)
+    return session_list
 
 # ---------------------- ROUTE: /main ----------------------
 @chatbot_bp.route('/main', methods=['GET', 'POST'])
@@ -46,9 +53,19 @@ def main():
         return redirect(url_for('chatbot.main'))
 
     # 🧠 Get available session names from blob
+    target_url = os.getenv('backend_url')+'/api/SessionList'
+    payload = {
+            "user_name": user,
+            "session_id": current_session
+    }   
+    session_list = requests.post(target_url, json=payload)
+    print(session_list.content)
+    session_list = clean_string(session_list.content)
+
     session_blob_client = AzureBlobStorageClient(user_name=user,session_id=current_session)
-    session_list = session_blob_client.list_sessions(user)
+    # session_list = session_blob_client.list_sessions(user)
     print(session_list)
+    
     if 'session_name' not in request.form:
         if 'save_session' in request.form:
             selected_session = current_session
@@ -58,37 +75,43 @@ def main():
                 'uploaded_Img_text_summary': session.get('uploaded_Img_text_summary', []),
                 'lawyer_response': session.get('lawyer_response', "")
             }
-            session_blob_client.save_session_to_blob(session_data['chat_history'],
-                session_data['uploaded_Img_text'],
-                session_data['uploaded_Img_text_summary']
-            )
+            target_url = os.getenv('backend_url')+'/api/SaveSession'
+            payload = {
+                "user_name": user,
+                "session_name": selected_session,
+                "chat_history": session_data['chat_history'],
+                "uploaded_Img_text": session_data['uploaded_Img_text'],
+                "uploaded_Img_text_summary": session_data['uploaded_Img_text_summary']
+            }
+            response = requests.post(target_url, json=payload)
+            print(response.content)
+            if response.status_code == 200:
+                print(f"[INFO] ✅ Session '{selected_session}' saved successfully.")
     # 🔄 Load or Save session
     if 'session_name' in request.form:
         selected_session = request.form['session_name']
-
-        if 'load_session' in request.form:
-            chat_history, uploaded_text, uploaded_summary = session_blob_client.load_session_from_blob()
-            session['chat_history'] = chat_history
-            session['uploaded_Img_text'] = uploaded_text
-            session['uploaded_Img_text_summary'] = uploaded_summary
-            session['lawyer_response'] = ""
-            session['current_session'] = selected_session
-
-        elif 'save_session' in request.form:
-            session_data = {
-                'chat_history': session.get('chat_history', []),
-                'uploaded_Img_text': session.get('uploaded_Img_text', []),
-                'uploaded_Img_text_summary': session.get('uploaded_Img_text_summary', []),
-                'lawyer_response': session.get('lawyer_response', "")
-            }
-            session_blob_client.save_session_to_blob(user, selected_session,
-                session_data['chat_history'],
-                session_data['uploaded_Img_text'],
-                session_data['uploaded_Img_text_summary']
-            )
-            if selected_session not in session_list:
-                session_list.append(selected_session)
-            session['current_session'] = selected_session
+        
+        target_url = os.getenv('backend_url')+'/api/LoadSession'
+        payload = {
+            "user_name": user,
+            "session_name": selected_session
+        }
+        response = requests.post(target_url, json=payload)
+        print(response.content)
+        # if response.status_code != 200:
+        #     print(f"[ERROR] ❌ Failed to load session '{selected_session}': {response.text}")
+        #     return redirect(url_for('chatbot.main'))
+        
+        print(f"[INFO] ✅ Session '{selected_session}' loaded successfully.")
+        print(response.json())
+        # chat_history, uploaded_text, uploaded_summary = session_blob_client.load_session_from_blob()
+        session['chat_history'] = response.json()['chat_history']
+        session['uploaded_Img_text'] = response.json()['uploaded_text']
+        session['uploaded_Img_text_summary'] = response.json()['summary']
+        session['lawyer_response'] = ""
+        print(session['current_session'])
+        session['current_session'] = selected_session
+        print(session['current_session'])
 
         return redirect(url_for('chatbot.main'))
 
@@ -100,12 +123,16 @@ def main():
 
     # 🧠 Trigger orchestrator
     if 'generate_results' in request.form:
-        orchestratorAgent_obj = lawyerAgent(
-            chat_history=session['chat_history'],
-            uploaded_Img_text=session['uploaded_Img_text'],
-            uploaded_Img_text_summary=session['uploaded_Img_text_summary']
-        )
-        lawyer_response = orchestratorAgent_obj.finalize()
+        target_url = os.getenv('backend_url')+'/api/finalize'
+        payload = {
+            "chat_history": session['chat_history'],
+            "uploaded_Img_text": session['uploaded_Img_text'],
+            'uploaded_Img_text_summary': session['uploaded_Img_text_summary']
+        }
+        response = requests.post(target_url, json=payload)
+        # print(response)
+        print(response.content)
+        lawyer_response = response.json()['lawyer_response']
         if isinstance(session['lawyer_response'], str):
             session['lawyer_response'] = []
         session['lawyer_response'].append(lawyer_response)
@@ -170,50 +197,14 @@ def click_doc():
 
 def background_doc_process(image_bytes, session_id, user_name, process_id):
     print("📄 Running Azure Document Intelligence...")
-
-    text = doc_intelligence_client.analyze_read(bytes_data1=image_bytes)
-    blob_storage_client = AzureBlobStorageClient(user_name=user_name, session_id = session_id)
-    fname = f"{user_name}/images/uploaded_img_{session_id}.jpeg"
     
-    print(f'session_id is: {session_id}')
-    print(f'filename is: {fname}')
-    blob_storage_client.upload_file(
-        bytes_data=image_bytes,
-        file_type='image',
-        process_id = process_id,
-        content_type='image/jpeg'
-    )
-    result_json = json.dumps(text)
-
-    extractorAgent_obj = extractorAgent(result_json)
-    extracted_data = extractorAgent_obj.extract()
-
-    result_store[session_id] = {
-        "content": extracted_data.content,
-        "summary": extracted_data.summary
+    img_b64 = base64.b64encode(image_bytes).decode('utf-8')  # convert to string
+    target_url = os.getenv('backend_url')+'/api/uploadfile'
+    payload = {
+        "image_bytes": img_b64,
+        "user_name": user_name,
+        "session_id": session_id,
+        "process_id": process_id
     }
-
-    print(f"[INFO] ✅ Result prepared for session: {session_id}")
-    run_doc_intelligence(session_id, extracted_data.content, extracted_data.summary, user_name=user_name, process_id=process_id)
-
-def run_doc_intelligence(session_id, content, summary,user_name,process_id):
-    blob_storage_client = AzureBlobStorageClient(user_name=user_name, session_id=session_id)
-    blob_storage_client.upload_file(
-        bytes_data=content.encode('utf-8'),
-        file_type='content',
-        process_id = process_id,
-        content_type='text/plain'
-    )
-    blob_storage_client.upload_file(
-        bytes_data=summary.encode('utf-8'),
-        file_type='summary',
-        process_id = process_id,
-        content_type='text/plain'
-    )
-
-
-# ---------------------- ROUTE: /get-uploaded-img-text ----------------------
-@chatbot_bp.route('/get_uploaded_img_text', methods=['GET'])
-def get_uploaded_img_text():
-    text = session.get('uploaded_Img_text', [])
-    return jsonify({"text": text})
+    response = requests.post(target_url, json=payload)
+    print(response.json())

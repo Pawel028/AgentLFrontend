@@ -243,8 +243,8 @@
   </div>
 
   <!-- Document Status Button -->
-  <button id="checkDocStatusBtn">📄 Check Document Status</button>
-  <div id="docStatus" style="margin-left: 30px; margin-top: 5px;"></div>
+  <!-- <button id="checkDocStatusBtn">📄 Check Document Status</button> -->
+  <!-- <div id="docStatus" style="margin-left: 30px; margin-top: 5px;"></div> -->
 
   <script>
     window.onload = function () {
@@ -262,7 +262,7 @@
 
     document.getElementById('checkDocStatusBtn').addEventListener('click', function () {
       document.getElementById('docStatus').innerText = "⏳ Checking...";
-      fetch('/process-doc')
+      fetch('/get_uploaded_img_text')
         .then(response => response.json())
         .then(data => {
           if (data.status === 'done') {
