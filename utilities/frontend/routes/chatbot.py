@@ -8,16 +8,8 @@ import json
 from threading import Thread
 from datetime import datetime
 import requests
-from utilities.backend.docrecognizer import AzureDocIntelligenceClient
-from utilities.backend.doc_extracter_agent import extractorAgent
-from utilities.backend.litigator_agent import lawyerAgent
-from utilities.backend.azureblobstorage import AzureBlobStorageClient
 chatbot_bp = Blueprint('chatbot', __name__)
-doc_intelligence_client = AzureDocIntelligenceClient(
-    endpoint=os.getenv('DOCUMENTINTELLIGENCE_ENDPOINT'),
-    key=os.getenv('DOCUMENTINTELLIGENCE_KEY')
-)
-container_name = os.getenv('BLOB_CONTAINER_NAME')
+# container_name = os.getenv('BLOB_CONTAINER_NAME')
 # 🔁 Shared in-memory result store
 result_store = {}
 
@@ -61,8 +53,6 @@ def main():
     session_list = requests.post(target_url, json=payload)
     print(session_list.content)
     session_list = clean_string(session_list.content)
-
-    session_blob_client = AzureBlobStorageClient(user_name=user,session_id=current_session)
     # session_list = session_blob_client.list_sessions(user)
     print(session_list)
     
