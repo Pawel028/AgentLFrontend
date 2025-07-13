@@ -17,6 +17,7 @@ def clean_string(byte_str):
     # byte_str = b'["chat-20250712-202142","chat-20250712-211204"]\n'
     clean_str = byte_str.decode('utf-8').strip()
     session_list = json.loads(clean_str)
+    session_list.sort(reverse=True)  # Sort sessions in descending order
     return session_list
 
 # ---------------------- ROUTE: /main ----------------------
