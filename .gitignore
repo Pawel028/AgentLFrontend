@@ -5,6 +5,7 @@ __pycache__/
 pics/
 upload/
 # C extensions
+*_cache
 *.so
 *.env
 .Environments
