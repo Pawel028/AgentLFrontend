@@ -8,7 +8,9 @@ import json
 from threading import Thread
 from datetime import datetime
 import requests
-from utilities.frontend.ask_info_from_user import AskInfo
+from utilities.frontend.ask_info_from_user import AskInfo,format_lawyer_response
+import json
+import re
 chatbot_bp = Blueprint('chatbot', __name__)
 # container_name = os.getenv('BLOB_CONTAINER_NAME')
 # 🔁 Shared in-memory result store
@@ -21,6 +23,43 @@ def clean_string(byte_str):
     session_list.sort(reverse=True)  # Sort sessions in descending order
     return session_list
 
+def generate_markdown(final_writeup):
+    md = ""
+    for section in final_writeup:
+        md += f"## {section['Heading']}\n\n{section['Paragraph']}\n\n"
+    return md
+
+
+# def clean_string(raw_data: bytes) -> str:
+#     """
+#     Cleans raw string or byte response from an API into a usable string or list.
+#     """
+#     # Convert bytes to string if needed
+#     if isinstance(raw_data, bytes):
+#         raw_data = raw_data.decode('utf-8')
+
+#     # Strip surrounding whitespace and line breaks
+#     cleaned = raw_data.strip()
+
+#     # Remove backslash escape characters like \n, \t, \r (optional)
+#     cleaned = cleaned.replace('\r', '').replace('\t', '').replace('\n', '')
+
+#     # Remove leading/trailing quotes if present
+#     cleaned = cleaned.strip('"').strip("'")
+
+#     # Try parsing JSON list or dict if it's structured
+#     try:
+#         parsed = json.loads(cleaned)
+#         return parsed  # This will return a list or dict if valid
+#     except Exception:
+#         pass
+
+#     # Fallback to a plain cleaned string
+#     return format_lawyer_response(cleaned)
+
+
+
+
 # ---------------------- ROUTE: /main ----------------------
 @chatbot_bp.route('/main', methods=['GET', 'POST'])
 def main():
@@ -28,6 +67,10 @@ def main():
         return redirect(url_for('auth.login'))
 
     user = session['user']
+
+    if 'markdown_str' not in session:
+        session['markdown_str'] = ""    
+    
 
     # 🔁 Auto-assign session name if first time
     if 'current_session' not in session:
@@ -124,14 +167,28 @@ def main():
         response = requests.post(target_url, json=payload)
         # print(response)
         print(response.content)
-        lawyer_response = response.json()['lawyer_response']        
+        lawyer_response = format_lawyer_response(response.content)        
+        final_writeup = lawyer_response['final_writeup']
+        markdown_str = generate_markdown(final_writeup)
+        session['markdown_str'] = markdown_str
+        # lawyer_response1 = [
+        #     lawyer_response['task_list'][i]['Task_Instruction'] + "\n" + lawyer_response['task_list'][i]['Task_results']
+        #     for i in range(len(lawyer_response['task_list']))]
+
+        # lawyer_response1.extend(
+        #     [lawyer_response['final_writeup'][i]['Heading'] + "\n" + lawyer_response['final_writeup'][i]['Paragraph']
+        #     for i in range(len(lawyer_response['final_writeup']))]
+        # )
+
+
         # chat_history = session.get('chat_history')        
         # chat_history.append(("Bot", lawyer_response))        
         # session['chat_history'] = chat_history
 
-        chat_history = session.get('chat_history', [])
-        chat_history.append(("Bot", lawyer_response))
-        session['chat_history'] = chat_history
+        # print(lawyer_response1)
+        # chat_history = session.get('chat_history', [])
+        # chat_history.append(("Bot", lawyer_response1))
+        # session['chat_history'] = chat_history
 
         # print(session['chat_history'])
         # if isinstance(session['lawyer_response'], str):
@@ -155,13 +212,14 @@ def main():
             chat_history.append(("User", user_msg))
             chat_history.append(("Bot", f"{AskInfo(user_msg,chat_history)}"))
             session['chat_history'] = chat_history
-    print(session['chat_history'])
+
     return render_template(
         'chatbot_main.html',
         chat_history=session['chat_history'],
         lawyer_response=session.get('lawyer_response', ""),
         session_list=session_list,
-        current_session=current_session
+        current_session=current_session,
+        markdown_content=session['markdown_str']
     )
 
 

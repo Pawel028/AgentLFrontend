@@ -218,6 +218,14 @@
             <span class="{{ 'user' if sender == 'User' else 'bot' }}">{{ sender }}:</span> {{ message }}
           </div>
         {% endfor %}
+        <div id="markdown-viewer"></div>
+
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script>
+          const mdText = `{{ markdown_content | safe }}`;
+          document.getElementById("markdown-viewer").innerHTML = marked.parse(mdText);
+        </script>
+
         <!-- <div class="message">
           <span class="bot">Final Results:</span> {{ lawyer_response }}
         </div> -->
